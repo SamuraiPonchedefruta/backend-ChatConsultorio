@@ -2,3 +2,7 @@ pgdata/
 target/
 *.log
 .env
+
+# Variables de entorno: nunca se suben, salvo la plantilla
+.env.*
+!.env.example
