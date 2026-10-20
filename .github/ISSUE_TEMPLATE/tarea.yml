@@ -1,0 +1,90 @@
+name: "Tarea de historia de usuario"
+description: "Issue técnico atómico (máx. 5 archivos) derivado de una historia de usuario"
+title: "[E#-##-X] Verbo en infinitivo + qué se hace"
+labels: ["tarea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Reglas del issue
+        - Un issue = un cambio verificable (**máximo 5 archivos**).
+        - El título lleva el ID entre corchetes. Ejemplo: `[E2-01-B] Crear API de administración de modelos`.
+  - type: input
+    id: epica
+    attributes:
+      label: Épica
+      placeholder: "E2"
+    validations:
+      required: true
+  - type: input
+    id: historia
+    attributes:
+      label: Historia de usuario
+      placeholder: "US-E2-01"
+    validations:
+      required: true
+  - type: dropdown
+    id: tipo
+    attributes:
+      label: Tipo
+      options: [backend, frontend, etl, ci, db, docs]
+    validations:
+      required: true
+  - type: dropdown
+    id: prioridad
+    attributes:
+      label: Prioridad
+      options: [alta, media, baja]
+    validations:
+      required: true
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: Qué hay que hacer
+      description: Descripción breve y concreta del trabajo.
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Hecho cuando
+      description: Criterios verificables, uno por línea.
+      value: |
+        - [ ] Criterio 1
+        - [ ] Criterio 2
+        - [ ] Las pruebas pasan en CI
+    validations:
+      required: true
+  - type: textarea
+    id: archivos
+    attributes:
+      label: Archivos a tocar (máx. 5)
+      placeholder: |
+        - `ModeloService.java`
+        - `ModeloBitacoraTest.java`
+    validations:
+      required: true
+  - type: input
+    id: depende
+    attributes:
+      label: Depende de
+      placeholder: "#12, #15 (o 'Ninguno')"
+    validations:
+      required: true
+  - type: input
+    id: bloquea
+    attributes:
+      label: Bloquea
+      placeholder: "#20 (o 'Ninguno')"
+  - type: input
+    id: estimacion
+    attributes:
+      label: Estimación (horas)
+      placeholder: "3"
+    validations:
+      required: true
+  - type: input
+    id: rama
+    attributes:
+      label: Rama sugerida
+      placeholder: "feat/E2-01-B-api-admin-modelos"
