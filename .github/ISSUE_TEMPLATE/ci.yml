@@ -1,0 +1,40 @@
+name: "Cambio de CI/CD o infraestructura"
+description: "Modificación al pipeline de GitHub Actions o al despliegue"
+title: "[E#-CI-X] Verbo + cambio al pipeline"
+labels: ["tipo:ci"]
+body:
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo
+      description: ¿Qué necesita el pipeline que hoy no tiene?
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Hecho cuando
+      value: |
+        - [ ] El workflow corre en cada PR
+        - [ ] Bloquea el merge si falla
+    validations:
+      required: true
+  - type: textarea
+    id: archivos
+    attributes:
+      label: Archivos a tocar
+      placeholder: "`.github/workflows/ci.yml`"
+    validations:
+      required: true
+  - type: input
+    id: depende
+    attributes:
+      label: Depende de
+      placeholder: "#12, #15 (o 'Ninguno')"
+    validations:
+      required: true
+  - type: textarea
+    id: secretos
+    attributes:
+      label: Secretos o variables requeridos
+      description: Solo nombres, nunca valores.
