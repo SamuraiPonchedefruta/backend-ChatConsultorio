@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     services:
       postgres:
@@ -37,12 +37,7 @@ jobs:
       - name: Descargar código del repositorio
         uses: actions/checkout@v4
 
-      - name: Aviso - proyecto Maven aún no existe
-        if: hashFiles('pom.xml') == ''
-        run: echo "No hay pom.xml todavía. Se omiten compilación y pruebas."
-
       - name: Configurar Java 21 (JDK)
-        if: hashFiles('pom.xml') != ''
         uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -50,9 +45,8 @@ jobs:
           cache: maven
 
       - name: Compilar y ejecutar pruebas con Maven
-        if: hashFiles('pom.xml') != ''
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/autobot_db
           SPRING_DATASOURCE_USERNAME: postgres
           SPRING_DATASOURCE_PASSWORD: postgrespassword
-        run: mvn -B clean verify
+        run: mvn -B -ntp clean verify
