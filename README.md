@@ -1,4 +1,3 @@
-cat > README.md <<'EOF'
 # Backend ChatConsultorio
 
 API backend del proyecto, con PostgreSQL + pgvector corriendo en Docker.
