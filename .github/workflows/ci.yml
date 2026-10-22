@@ -24,7 +24,7 @@ jobs:
         env:
           POSTGRES_DB: autobot_db
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
         ports:
           - 5432:5432
         options: >-
@@ -48,5 +48,5 @@ jobs:
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/autobot_db
           SPRING_DATASOURCE_USERNAME: postgres
-          SPRING_DATASOURCE_PASSWORD: postgrespassword
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
         run: mvn -B -ntp clean verify

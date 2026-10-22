@@ -1,0 +1,14 @@
+# Perfil prod: sin defaults para host, base, usuario ni contraseña.
+# Si falta una variable, la app NO arranca.
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:5432}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+server:
+  error:
+    include-stacktrace: never
+logging:
+  level:
+    root: WARN
+    com.autobot: INFO
