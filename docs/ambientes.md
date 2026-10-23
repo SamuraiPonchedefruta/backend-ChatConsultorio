@@ -43,3 +43,13 @@ Si falta una variable obligatoria, la app no arranca. El error aparece como
 
 No se modifica código: solo cambian `SPRING_PROFILES_ACTIVE` y las variables de
 conexión del servicio. Un redeploy aplica el cambio.
+
+## Staging: datos del despliegue
+
+- URL: https://TU-SERVICIO.onrender.com
+- Salud: https://TU-SERVICIO.onrender.com/actuator/health
+- Región: Ohio (US East); servicio y base en la misma región.
+- Verificado: perfil `staging` activo, migración V1 aplicada y salud en UP.
+- Cambio de perfil probado solo con la variable `SPRING_PROFILES_ACTIVE`, sin modificar código.
+- Nota: en el plan gratuito de Render el servicio se duerme tras inactividad y la base
+  gratuita puede expirar. Revisar los límites vigentes en la documentación de Render.
