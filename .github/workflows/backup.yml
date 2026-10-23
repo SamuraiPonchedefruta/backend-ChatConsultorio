@@ -1,0 +1,86 @@
+name: Respaldo de staging
+
+# Respalda la base PostgreSQL de staging (Render) todos los días.
+# Cron de GitHub Actions usa UTC: 07:00 UTC = 02:00 en Panamá (UTC-5, sin horario de verano).
+# El dump se cifra antes de guardarse porque el repositorio es público.
+# Para restaurar: descargar el artefacto, descifrar con gpg usando BACKUP_PASSPHRASE
+# y luego usar scripts/restore.sh.
+
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: respaldo-staging
+  cancel-in-progress: false
+
+jobs:
+  respaldo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      POSTGRES_HOST: ${{ secrets.STAGING_DB_HOST }}
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${{ secrets.STAGING_DB_NAME }}
+      POSTGRES_USER: ${{ secrets.STAGING_DB_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      PGSSLMODE: require
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar secretos
+        run: |
+          for v in POSTGRES_HOST POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD BACKUP_PASSPHRASE; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Falta el secreto asociado a $v"
+              exit 1
+            fi
+          done
+
+      - name: Instalar cliente de PostgreSQL de la misma versión que el servidor
+        run: |
+          MAJOR=$(PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
+            -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SHOW server_version_num" | cut -c1-2)
+          [ -n "$MAJOR" ] || { echo "::error::No se pudo leer la versión del servidor"; exit 1; }
+          echo "Versión mayor del servidor: $MAJOR"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq "postgresql-client-$MAJOR"
+          echo "/usr/lib/postgresql/$MAJOR/bin" >> "$GITHUB_PATH"
+
+      - name: Generar respaldo
+        run: |
+          pg_dump --version
+          bash scripts/backup.sh --no-upload
+
+      - name: Comprobar que el respaldo es restaurable
+        run: |
+          for f in backups/*.dump; do
+            pg_restore --list "$f" > /dev/null
+            echo "OK: $(basename "$f")"
+          done
+
+      - name: Cifrar el respaldo
+        run: |
+          for f in backups/*.dump; do
+            printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+              --passphrase-fd 0 --symmetric --cipher-algo AES256 -o "$f.gpg" "$f"
+            rm -f "$f"
+          done
+
+      - name: Guardar respaldo cifrado
+        uses: actions/upload-artifact@v4
+        with:
+          name: respaldo-staging-${{ github.run_id }}
+          path: backups/*.dump.gpg
+          retention-days: 30
+          if-no-files-found: error
