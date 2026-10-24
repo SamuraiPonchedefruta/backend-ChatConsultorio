@@ -16,6 +16,7 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import com.autobot.backend.auth.service.ConsentimientoInvalidoException;
 import com.autobot.backend.auth.service.CuentaDuplicadaException;
 
 @RestControllerAdvice
@@ -38,6 +39,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .toList();
         ErrorResponse body = ErrorResponse.of(HttpStatus.CONFLICT, ex.getMessage(), pathOf(request), details);
         return new ResponseEntity<>(body, HttpStatus.CONFLICT);
+    }
+
+    /** Consentimiento que no se puede registrar (datos sin aceptar, versión inexistente...): 400 con el motivo. */
+    @ExceptionHandler(ConsentimientoInvalidoException.class)
+    public ResponseEntity<Object> handleConsentimientoInvalido(
+            ConsentimientoInvalidoException ex, WebRequest request) {
+        ErrorResponse body = ErrorResponse.of(HttpStatus.BAD_REQUEST, ex.getMessage(), pathOf(request), List.of());
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
     /** Errores de validación: 400 con el detalle por campo. */

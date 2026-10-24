@@ -17,4 +17,11 @@ public interface ConsentimientoRepository extends JpaRepository<Consentimiento, 
     /** Decisión vigente de un usuario sobre una versión de texto: la más reciente. */
     Optional<Consentimiento> findFirstByUsuarioIdAndTextoLegalIdOrderByFechaDecisionDescIdDesc(
             Long idUsuario, Integer idTextoLegal);
+
+    /**
+     * Decisión vigente de un usuario sobre un tipo de texto (por ejemplo TRATAMIENTO_DATOS),
+     * sin importar la versión: la más reciente.
+     */
+    Optional<Consentimiento> findFirstByUsuarioIdAndTextoLegalTipoOrderByFechaDecisionDescIdDesc(
+            Long idUsuario, String tipoTexto);
 }
