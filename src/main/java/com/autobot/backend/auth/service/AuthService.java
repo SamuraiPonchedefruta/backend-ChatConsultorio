@@ -9,9 +9,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.autobot.backend.auth.dto.DecisionConsentimiento;
 import com.autobot.backend.auth.dto.RegistroRequest;
 import com.autobot.backend.auth.dto.RegistroResponse;
 import com.autobot.backend.auth.model.Rol;
+import com.autobot.backend.auth.model.TextoLegal;
+import com.autobot.backend.auth.model.TipoConsentimiento;
 import com.autobot.backend.auth.model.Usuario;
 import com.autobot.backend.auth.repository.RolRepository;
 import com.autobot.backend.auth.repository.UsuarioRepository;
@@ -25,17 +28,25 @@ public class AuthService {
     private final UsuarioRepository usuarios;
     private final RolRepository roles;
     private final PasswordEncoder passwordEncoder;
+    private final ConsentimientoService consentimientos;
 
-    public AuthService(UsuarioRepository usuarios, RolRepository roles, PasswordEncoder passwordEncoder) {
+    public AuthService(
+            UsuarioRepository usuarios,
+            RolRepository roles,
+            PasswordEncoder passwordEncoder,
+            ConsentimientoService consentimientos) {
         this.usuarios = usuarios;
         this.roles = roles;
         this.passwordEncoder = passwordEncoder;
+        this.consentimientos = consentimientos;
     }
 
     /**
-     * Registra una cuenta de cliente.
+     * Registra una cuenta de cliente y, en la misma transacción, sus decisiones de consentimiento:
+     * si algo falla, no queda la cuenta sin sus consentimientos ni consentimientos sin cuenta.
      *
      * @throws CuentaDuplicadaException si el correo o el celular ya existen
+     * @throws ConsentimientoInvalidoException si no se aceptan los datos o una versión de texto no existe
      */
     @Transactional
     public RegistroResponse registrar(RegistroRequest solicitud) {
@@ -53,9 +64,21 @@ public class AuthService {
             throw CuentaDuplicadaException.de(duplicados);
         }
 
+        DecisionConsentimiento datos = solicitud.consentimientoDatos();
+        if (datos == null || !Boolean.TRUE.equals(datos.aceptado())) {
+            throw new ConsentimientoInvalidoException(
+                    "Debes aceptar el tratamiento de datos personales para crear la cuenta.");
+        }
+
         Rol rolCliente = roles.findByNombreRol(ROL_CLIENTE)
                 .orElseThrow(() -> new IllegalStateException(
                         "El rol " + ROL_CLIENTE + " no existe en la base de datos"));
+
+        TextoLegal textoDatos = consentimientos.resolverTexto(TipoConsentimiento.DATOS, datos.version());
+        DecisionConsentimiento notificaciones = solicitud.consentimientoNotificaciones();
+        TextoLegal textoNotificaciones = notificaciones == null
+                ? null
+                : consentimientos.resolverTexto(TipoConsentimiento.NOTIFICACIONES, notificaciones.version());
 
         Usuario usuario = new Usuario(
                 solicitud.nombre().trim(),
@@ -70,6 +93,11 @@ public class AuthService {
         } catch (DataIntegrityViolationException ex) {
             // Dos registros simultáneos pasaron la revisión previa: la base de datos tuvo la última palabra.
             throw CuentaDuplicadaException.porCarrera(ex);
+        }
+
+        consentimientos.registrar(guardado, textoDatos, true);
+        if (textoNotificaciones != null) {
+            consentimientos.registrar(guardado, textoNotificaciones, Boolean.TRUE.equals(notificaciones.aceptado()));
         }
 
         return new RegistroResponse(
