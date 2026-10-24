@@ -16,6 +16,8 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import com.autobot.backend.auth.service.CuentaDuplicadaException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
@@ -26,6 +28,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleUnexpected(Exception ex, WebRequest request) {
         log.error("Error no controlado en {}", pathOf(request), ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, new HttpHeaders(), request, List.of());
+    }
+
+    /** Correo o celular ya registrados: 409 con mensaje claro y el detalle por campo. */
+    @ExceptionHandler(CuentaDuplicadaException.class)
+    public ResponseEntity<Object> handleCuentaDuplicada(CuentaDuplicadaException ex, WebRequest request) {
+        List<String> details = ex.getCampos().stream()
+                .map(campo -> campo + ": ya está registrado")
+                .toList();
+        ErrorResponse body = ErrorResponse.of(HttpStatus.CONFLICT, ex.getMessage(), pathOf(request), details);
+        return new ResponseEntity<>(body, HttpStatus.CONFLICT);
     }
 
     /** Errores de validación: 400 con el detalle por campo. */
