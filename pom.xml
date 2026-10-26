@@ -28,6 +28,12 @@
       <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
 
+    <!-- Soporte OAuth2 JOSE (JWT) -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-jose</artifactId>
+    </dependency>
+
     <!-- Validación de datos y DTOs (@NotBlank, @Email, etc.) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

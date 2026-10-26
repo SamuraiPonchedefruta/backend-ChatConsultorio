@@ -17,6 +17,13 @@ spring:
 server:
   port: ${PORT:8080}
 
+app:
+  jwt:
+    # Sin valor por defecto en ningún perfil: si falta JWT_SECRET la aplicación no arranca.
+    secret: ${JWT_SECRET}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+    issuer: ${JWT_ISSUER:autobot-backend}
+
 management:
   endpoints:
     web:
