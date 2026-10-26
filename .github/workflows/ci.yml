@@ -49,4 +49,5 @@ jobs:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/autobot_db
           SPRING_DATASOURCE_USERNAME: postgres
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
         run: mvn -B -ntp clean verify

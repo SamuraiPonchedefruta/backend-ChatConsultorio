@@ -53,3 +53,16 @@ conexión del servicio. Un redeploy aplica el cambio.
 - Cambio de perfil probado solo con la variable `SPRING_PROFILES_ACTIVE`, sin modificar código.
 - Nota: en el plan gratuito de Render el servicio se duerme tras inactividad y la base
   gratuita puede expirar. Revisar los límites vigentes en la documentación de Render.
+
+## Variables de autenticación (JWT)
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `JWT_SECRET` | Sí, sin valor por defecto | Clave de firma de los tokens, mínimo 32 bytes. Una distinta por ambiente. |
+| `JWT_EXPIRATION_MINUTES` | No (60) | Vida de un token. |
+| `JWT_ISSUER` | No (`autobot-backend`) | Emisor que se valida en cada token. |
+
+- Generar un secreto: `openssl rand -base64 48`.
+- Si falta o es corto, la aplicación no arranca y el log lo indica.
+- Cambiar el secreto invalida todos los tokens emitidos.
+- En CI, el secreto sale del secret de GitHub `CI_JWT_SECRET`.
