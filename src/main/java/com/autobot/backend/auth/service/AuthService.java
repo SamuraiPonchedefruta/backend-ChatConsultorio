@@ -1,15 +1,20 @@
 package com.autobot.backend.auth.service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.autobot.backend.auth.dto.DecisionConsentimiento;
+import com.autobot.backend.auth.dto.LoginRequest;
+import com.autobot.backend.auth.dto.LoginResponse;
 import com.autobot.backend.auth.dto.RegistroRequest;
 import com.autobot.backend.auth.dto.RegistroResponse;
 import com.autobot.backend.auth.model.Rol;
@@ -17,6 +22,7 @@ import com.autobot.backend.auth.model.TextoLegal;
 import com.autobot.backend.auth.model.TipoConsentimiento;
 import com.autobot.backend.auth.model.Usuario;
 import com.autobot.backend.auth.repository.RolRepository;
+import com.autobot.backend.auth.repository.TokenRevocadoRepository;
 import com.autobot.backend.auth.repository.UsuarioRepository;
 
 @Service
@@ -24,30 +30,39 @@ public class AuthService {
 
     static final String ROL_CLIENTE = "CLIENTE";
     private static final String PREFIJO_PANAMA = "+507";
+    private static final String DUMMY_HASH = "$2a$10$123456789012345678901uG7W";
 
     private final UsuarioRepository usuarios;
     private final RolRepository roles;
+    private final TokenRevocadoRepository tokenRevocadoRepository;
     private final PasswordEncoder passwordEncoder;
     private final ConsentimientoService consentimientos;
+    private final JwtService jwtService;
+
+    @Autowired
+    public AuthService(
+            UsuarioRepository usuarios,
+            RolRepository roles,
+            TokenRevocadoRepository tokenRevocadoRepository,
+            PasswordEncoder passwordEncoder,
+            ConsentimientoService consentimientos,
+            JwtService jwtService) {
+        this.usuarios = usuarios;
+        this.roles = roles;
+        this.tokenRevocadoRepository = tokenRevocadoRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.consentimientos = consentimientos;
+        this.jwtService = jwtService;
+    }
 
     public AuthService(
             UsuarioRepository usuarios,
             RolRepository roles,
             PasswordEncoder passwordEncoder,
             ConsentimientoService consentimientos) {
-        this.usuarios = usuarios;
-        this.roles = roles;
-        this.passwordEncoder = passwordEncoder;
-        this.consentimientos = consentimientos;
+        this(usuarios, roles, null, passwordEncoder, consentimientos, null);
     }
 
-    /**
-     * Registra una cuenta de cliente y, en la misma transacción, sus decisiones de consentimiento:
-     * si algo falla, no queda la cuenta sin sus consentimientos ni consentimientos sin cuenta.
-     *
-     * @throws CuentaDuplicadaException si el correo o el celular ya existen
-     * @throws ConsentimientoInvalidoException si no se aceptan los datos o una versión de texto no existe
-     */
     @Transactional
     public RegistroResponse registrar(RegistroRequest solicitud) {
         String correo = solicitud.correo().trim().toLowerCase(Locale.ROOT);
@@ -57,7 +72,7 @@ public class AuthService {
         if (usuarios.findByCorreo(correo).isPresent()) {
             duplicados.add("correo");
         }
-        if (usuarios.findByTelefonoNumero(celular).isPresent()) {
+        if (usuarios.findByTelefonos_Numero(celular).isPresent()) {
             duplicados.add("celular");
         }
         if (!duplicados.isEmpty()) {
@@ -91,7 +106,6 @@ public class AuthService {
         try {
             guardado = usuarios.saveAndFlush(usuario);
         } catch (DataIntegrityViolationException ex) {
-            // Dos registros simultáneos pasaron la revisión previa: la base de datos tuvo la última palabra.
             throw CuentaDuplicadaException.porCarrera(ex);
         }
 
@@ -109,7 +123,40 @@ public class AuthService {
                 guardado.getFechaRegistro());
     }
 
-    /** 8 dígitos se interpretan como celular de Panamá; si ya trae "+", se respeta. */
+    public LoginResponse login(LoginRequest request) {
+        String identificador = request.identificador().trim().toLowerCase(Locale.ROOT);
+
+        Optional<Usuario> usuarioOpt = usuarios.findByCorreo(identificador)
+                .or(() -> usuarios.findByTelefonos_Numero(identificador));
+
+        boolean passwordValida;
+        if (usuarioOpt.isPresent()) {
+            Usuario usuario = usuarioOpt.get();
+            passwordValida = passwordEncoder.matches(request.password(), usuario.getPasswordHash());
+        } else {
+            passwordEncoder.matches(request.password(), DUMMY_HASH);
+            passwordValida = false;
+        }
+
+        if (usuarioOpt.isEmpty() || !passwordValida) {
+            throw new IllegalArgumentException("Credenciales inválidas");
+        }
+
+        Usuario usuario = usuarioOpt.get();
+        List<String> rolesNombres = usuario.getRoles() != null
+                ? usuario.getRoles().stream().map(Rol::getNombreRol).toList()
+                : List.of(ROL_CLIENTE);
+
+        JwtService.TokenEmitido emitido = jwtService.emitir(usuario.getCorreo(), rolesNombres);
+        return new LoginResponse(emitido.token(), emitido.expiraEn());
+    }
+
+    public void logout(String jti, Instant expiracion) {
+        if (jti != null) {
+            tokenRevocadoRepository.registrar(jti, expiracion);
+        }
+    }
+
     private static String normalizarCelular(String celular) {
         String limpio = celular.trim();
         return limpio.startsWith("+") ? limpio : PREFIJO_PANAMA + limpio;

@@ -82,7 +82,7 @@ class RegistroServiceTest {
     /** Stubs comunes de un registro válido: sin duplicados, rol y texto de datos disponibles, guardado exitoso. */
     private void prepararRegistroValido() {
         when(usuarios.findByCorreo(CORREO)).thenReturn(Optional.empty());
-        when(usuarios.findByTelefonoNumero(CELULAR)).thenReturn(Optional.empty());
+        when(usuarios.findByTelefonos_Numero(CELULAR)).thenReturn(Optional.empty());
         when(roles.findByNombreRol("CLIENTE")).thenReturn(Optional.of(new Rol("CLIENTE")));
         when(consentimientos.resolverTexto(TipoConsentimiento.DATOS, "1.0")).thenReturn(TEXTO_DATOS);
         when(usuarios.saveAndFlush(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -159,7 +159,7 @@ class RegistroServiceTest {
     @DisplayName("Sin aceptar el tratamiento de datos no se crea la cuenta")
     void rechazaSiNoAceptaLosDatos() {
         when(usuarios.findByCorreo(CORREO)).thenReturn(Optional.empty());
-        when(usuarios.findByTelefonoNumero(CELULAR)).thenReturn(Optional.empty());
+        when(usuarios.findByTelefonos_Numero(CELULAR)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.registrar(
                 solicitud("61234567", new DecisionConsentimiento(false, "1.0"), null)))
@@ -174,7 +174,7 @@ class RegistroServiceTest {
     @DisplayName("Una versión inexistente del texto de datos no crea la cuenta")
     void rechazaVersionInexistente() {
         when(usuarios.findByCorreo(CORREO)).thenReturn(Optional.empty());
-        when(usuarios.findByTelefonoNumero(CELULAR)).thenReturn(Optional.empty());
+        when(usuarios.findByTelefonos_Numero(CELULAR)).thenReturn(Optional.empty());
         when(roles.findByNombreRol("CLIENTE")).thenReturn(Optional.of(new Rol("CLIENTE")));
         when(consentimientos.resolverTexto(TipoConsentimiento.DATOS, "1.0"))
                 .thenThrow(new ConsentimientoInvalidoException("La versión 1.0 del texto legal de datos no existe."));
@@ -189,7 +189,7 @@ class RegistroServiceTest {
     @DisplayName("Un correo ya registrado devuelve un error claro y no guarda nada")
     void rechazaCorreoDuplicado() {
         when(usuarios.findByCorreo(CORREO)).thenReturn(Optional.of(cuentaExistente(CORREO)));
-        when(usuarios.findByTelefonoNumero(CELULAR)).thenReturn(Optional.empty());
+        when(usuarios.findByTelefonos_Numero(CELULAR)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.registrar(solicitud()))
                 .isInstanceOfSatisfying(CuentaDuplicadaException.class, ex -> {
@@ -204,7 +204,7 @@ class RegistroServiceTest {
     @DisplayName("Un celular ya registrado devuelve un error claro y no guarda nada")
     void rechazaCelularDuplicado() {
         when(usuarios.findByCorreo(CORREO)).thenReturn(Optional.empty());
-        when(usuarios.findByTelefonoNumero(CELULAR)).thenReturn(Optional.of(cuentaExistente("otro@example.com")));
+        when(usuarios.findByTelefonos_Numero(CELULAR)).thenReturn(Optional.of(cuentaExistente("otro@example.com")));
 
         assertThatThrownBy(() -> service.registrar(solicitud()))
                 .isInstanceOfSatisfying(CuentaDuplicadaException.class, ex -> {
@@ -219,7 +219,7 @@ class RegistroServiceTest {
     @DisplayName("Si correo y celular están repetidos, el error menciona ambos")
     void rechazaCorreoYCelularDuplicados() {
         when(usuarios.findByCorreo(CORREO)).thenReturn(Optional.of(cuentaExistente(CORREO)));
-        when(usuarios.findByTelefonoNumero(CELULAR)).thenReturn(Optional.of(cuentaExistente(CORREO)));
+        when(usuarios.findByTelefonos_Numero(CELULAR)).thenReturn(Optional.of(cuentaExistente(CORREO)));
 
         assertThatThrownBy(() -> service.registrar(solicitud()))
                 .isInstanceOfSatisfying(CuentaDuplicadaException.class, ex -> {
@@ -239,7 +239,7 @@ class RegistroServiceTest {
     @DisplayName("El celular se normaliza al formato internacional")
     void normalizaElCelular(String recibido, String esperado) {
         when(usuarios.findByCorreo(CORREO)).thenReturn(Optional.empty());
-        when(usuarios.findByTelefonoNumero(esperado)).thenReturn(Optional.empty());
+        when(usuarios.findByTelefonos_Numero(esperado)).thenReturn(Optional.empty());
         when(roles.findByNombreRol("CLIENTE")).thenReturn(Optional.of(new Rol("CLIENTE")));
         when(consentimientos.resolverTexto(TipoConsentimiento.DATOS, "1.0")).thenReturn(TEXTO_DATOS);
         when(usuarios.saveAndFlush(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -256,7 +256,7 @@ class RegistroServiceTest {
     @DisplayName("Si la base rechaza el guardado por una restricción única, se informa como duplicado")
     void traduceLaViolacionDeRestriccionUnica() {
         when(usuarios.findByCorreo(CORREO)).thenReturn(Optional.empty());
-        when(usuarios.findByTelefonoNumero(CELULAR)).thenReturn(Optional.empty());
+        when(usuarios.findByTelefonos_Numero(CELULAR)).thenReturn(Optional.empty());
         when(roles.findByNombreRol("CLIENTE")).thenReturn(Optional.of(new Rol("CLIENTE")));
         when(consentimientos.resolverTexto(TipoConsentimiento.DATOS, "1.0")).thenReturn(TEXTO_DATOS);
         when(usuarios.saveAndFlush(any(Usuario.class))).thenThrow(new DataIntegrityViolationException("duplicado"));
@@ -272,7 +272,7 @@ class RegistroServiceTest {
     @DisplayName("Si el rol CLIENTE no existe en la base, falla sin guardar la cuenta")
     void fallaSiNoExisteElRolCliente() {
         when(usuarios.findByCorreo(CORREO)).thenReturn(Optional.empty());
-        when(usuarios.findByTelefonoNumero(CELULAR)).thenReturn(Optional.empty());
+        when(usuarios.findByTelefonos_Numero(CELULAR)).thenReturn(Optional.empty());
         when(roles.findByNombreRol("CLIENTE")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.registrar(solicitud()))
