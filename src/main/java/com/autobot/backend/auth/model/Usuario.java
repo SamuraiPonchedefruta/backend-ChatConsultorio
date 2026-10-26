@@ -19,7 +19,6 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
@@ -40,17 +39,8 @@ public class Usuario {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-    @Column(nullable = false)
-    private boolean activo = true;
-
-    @Column(name = "correo_verificado_en")
-    private Instant correoVerificadoEn;
-
     @Column(name = "fecha_registro", nullable = false, updatable = false)
     private Instant fechaRegistro;
-
-    @Column(name = "fecha_actualizacion", nullable = false)
-    private Instant fechaActualizacion;
 
     @ManyToMany
     @JoinTable(
@@ -74,16 +64,9 @@ public class Usuario {
 
     @PrePersist
     void alCrear() {
-        Instant ahora = Instant.now();
         if (fechaRegistro == null) {
-            fechaRegistro = ahora;
+            fechaRegistro = Instant.now();
         }
-        fechaActualizacion = ahora;
-    }
-
-    @PreUpdate
-    void alActualizar() {
-        fechaActualizacion = Instant.now();
     }
 
     /** El teléfono debe venir en formato internacional, por ejemplo +50761234567. */
@@ -93,10 +76,6 @@ public class Usuario {
 
     public void agregarRol(Rol rol) {
         roles.add(rol);
-    }
-
-    public void setActivo(boolean activo) {
-        this.activo = activo;
     }
 
     private static String normalizarCorreo(String correo) {
@@ -119,20 +98,8 @@ public class Usuario {
         return passwordHash;
     }
 
-    public boolean isActivo() {
-        return activo;
-    }
-
-    public Instant getCorreoVerificadoEn() {
-        return correoVerificadoEn;
-    }
-
     public Instant getFechaRegistro() {
         return fechaRegistro;
-    }
-
-    public Instant getFechaActualizacion() {
-        return fechaActualizacion;
     }
 
     public Set<Rol> getRoles() {

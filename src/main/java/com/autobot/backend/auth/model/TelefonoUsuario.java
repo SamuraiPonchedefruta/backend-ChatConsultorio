@@ -1,7 +1,5 @@
 package com.autobot.backend.auth.model;
 
-import java.time.Instant;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -31,9 +29,6 @@ public class TelefonoUsuario {
     @Column(name = "es_principal", nullable = false)
     private boolean principal;
 
-    @Column(name = "verificado_en")
-    private Instant verificadoEn;
-
     protected TelefonoUsuario() {
         // requerido por JPA
     }
@@ -55,13 +50,5 @@ public class TelefonoUsuario {
 
     public boolean isPrincipal() {
         return principal;
-    }
-
-    public Instant getVerificadoEn() {
-        return verificadoEn;
-    }
-
-    public boolean isVerificado() {
-        return verificadoEn != null;
     }
 }

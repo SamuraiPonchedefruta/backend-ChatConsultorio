@@ -14,6 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.autobot.backend.auth.repository.TokenRevocadoRepository;
 import com.autobot.backend.auth.security.JwtAuthFilter;
 import com.autobot.backend.auth.service.JwtService;
 
@@ -28,7 +29,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService) throws Exception {
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http, JwtService jwtService, TokenRevocadoRepository tokensRevocados) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -38,12 +40,15 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(rutas -> rutas
                         .requestMatchers(HttpMethod.POST, "/auth/registro").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                         // Render usa esta ruta como health check: debe seguir siendo pública.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .anyRequest().authenticated())
-                // Token válido: usuario autenticado. Token ausente, vencido o alterado: sin autenticar,
-                // y las rutas protegidas responden 401 por el entry point de arriba.
-                .addFilterBefore(new JwtAuthFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+                // Token válido y no revocado: usuario autenticado. Token ausente, vencido, alterado o cerrado
+                // con logout: sin autenticar, y las rutas protegidas responden 401 por el entry point.
+                .addFilterBefore(
+                        new JwtAuthFilter(jwtService, jti -> tokensRevocados.existsById(jti)),
+                        UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -31,30 +32,30 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
 import jakarta.servlet.FilterChain;
 
-/** Pruebas del filtro sin levantar Spring: ejercitan la lectura del encabezado y el contexto de seguridad. */
 class JwtAuthFilterTest {
 
-    private static final String SECRETO = "clave-de-prueba-solo-para-tests-que-supera-los-32-bytes";
+    private static final String SECRETO_TEST = "clave-de-prueba-solo-para-tests-que-supera-los-32-bytes";
     private static final String CORREO = "ana@example.com";
 
-    private final JwtService jwtService = new JwtService(new JwtProperties(SECRETO, 60, "autobot-backend"));
-    private final JwtAuthFilter filtro = new JwtAuthFilter(jwtService);
+    private final JwtService jwtServiceLocal = new JwtService(new JwtProperties(SECRETO_TEST, 60, "autobot-backend"));
+    private final JwtAuthFilter filtro = new JwtAuthFilter(jwtServiceLocal, jti -> false);
 
     private boolean cadenaEjecutada;
 
     @AfterEach
     void limpiarContexto() {
         SecurityContextHolder.clearContext();
+        cadenaEjecutada = false;
     }
 
-    /** Token bien firmado con la clave correcta pero emitido hace 3 horas, con vida de 60 minutos. */
     private static String tokenVencido() {
-        SecretKey clave = new SecretKeySpec(SECRETO.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        SecretKey clave = new SecretKeySpec(SECRETO_TEST.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         NimbusJwtEncoder encoder = new NimbusJwtEncoder(new ImmutableSecret<>(clave));
         Instant emitidoEn = Instant.now().minus(Duration.ofHours(3));
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("autobot-backend")
                 .subject(CORREO)
+                .id(UUID.randomUUID().toString())
                 .issuedAt(emitidoEn)
                 .expiresAt(emitidoEn.plus(Duration.ofMinutes(60)))
                 .claim("roles", List.of("CLIENTE"))
@@ -63,8 +64,8 @@ class JwtAuthFilterTest {
                 JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
     }
 
-    /** Ejecuta el filtro y devuelve la autenticación que vería el resto de la cadena. */
     private Authentication ejecutar(String cabeceraAuthorization) throws Exception {
+        cadenaEjecutada = false;
         MockHttpServletRequest peticion = new MockHttpServletRequest("GET", "/consentimientos");
         if (cabeceraAuthorization != null) {
             peticion.addHeader(HttpHeaders.AUTHORIZATION, cabeceraAuthorization);
@@ -85,7 +86,7 @@ class JwtAuthFilterTest {
     @Test
     @DisplayName("Un token válido deja autenticado al usuario con su correo y sus roles")
     void tokenValidoAutentica() throws Exception {
-        String token = jwtService.generarToken(CORREO, List.of("CLIENTE", "ADMIN"));
+        String token = jwtServiceLocal.generarToken(CORREO, List.of("CLIENTE", "ADMIN"));
 
         Authentication autenticacion = ejecutar("Bearer " + token);
 
@@ -100,7 +101,7 @@ class JwtAuthFilterTest {
     @Test
     @DisplayName("El esquema Bearer no distingue mayúsculas")
     void esquemaBearerSinDistinguirMayusculas() throws Exception {
-        String token = jwtService.generarToken(CORREO, List.of("CLIENTE"));
+        String token = jwtServiceLocal.generarToken(CORREO, List.of("CLIENTE"));
 
         assertThat(ejecutar("bearer " + token)).isNotNull();
     }
