@@ -17,3 +17,6 @@ app:
     secret: c3VwZXJzZWNyZXRrZXlmb3JhdXRvYm90YmFja2VuZHdpdGhhdGxlYXN0MzJieXRlcw==
     expiration-minutes: 60
     issuer: autobot-backend
+  login:
+    max-intentos: 5
+    bloqueo-minutos: 15
