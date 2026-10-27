@@ -38,6 +38,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final ConsentimientoService consentimientos;
     private final JwtService jwtService;
+    private final IntentosLoginService intentosLoginService;
 
     @Autowired
     public AuthService(
@@ -46,21 +47,15 @@ public class AuthService {
             TokenRevocadoRepository tokenRevocadoRepository,
             PasswordEncoder passwordEncoder,
             ConsentimientoService consentimientos,
-            JwtService jwtService) {
+            JwtService jwtService,
+            IntentosLoginService intentosLoginService) {
         this.usuarios = usuarios;
         this.roles = roles;
         this.tokenRevocadoRepository = tokenRevocadoRepository;
         this.passwordEncoder = passwordEncoder;
         this.consentimientos = consentimientos;
         this.jwtService = jwtService;
-    }
-
-    public AuthService(
-            UsuarioRepository usuarios,
-            RolRepository roles,
-            PasswordEncoder passwordEncoder,
-            ConsentimientoService consentimientos) {
-        this(usuarios, roles, null, passwordEncoder, consentimientos, null);
+        this.intentosLoginService = intentosLoginService;
     }
 
     @Transactional
@@ -124,10 +119,20 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        String identificador = request.identificador().trim().toLowerCase(Locale.ROOT);
+        String inputIdentificador = request.identificador().trim().toLowerCase(Locale.ROOT);
 
-        Optional<Usuario> usuarioOpt = usuarios.findByCorreo(identificador)
-                .or(() -> usuarios.findByTelefonos_Numero(identificador));
+        // 1. Resolver si el input corresponde a una cuenta real (por correo o por celular)
+        Optional<Usuario> usuarioOpt = usuarios.findByCorreo(inputIdentificador)
+                .or(() -> usuarios.findByTelefonos_Numero(inputIdentificador));
+
+        // 2. Unificar la clave de intentos: si el usuario existe, usamos su correo oficial. 
+        // Si no existe (fantasma), usamos el input que escribió el usuario.
+        String claveIntentos = usuarioOpt.isPresent() 
+                ? usuarioOpt.get().getCorreo() 
+                : inputIdentificador;
+
+        // 3. Verificar si esa clave está bloqueada (lanza 429 si lo está)
+        intentosLoginService.verificarNoBloqueado(claveIntentos);
 
         boolean passwordValida;
         if (usuarioOpt.isPresent()) {
@@ -139,8 +144,16 @@ public class AuthService {
         }
 
         if (usuarioOpt.isEmpty() || !passwordValida) {
-            throw new IllegalArgumentException("Credenciales inválidas");
+            // 4. Registrar el fallo usando la clave unificada de la cuenta
+            intentosLoginService.registrarFallo(claveIntentos);
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED, 
+                    "Credenciales inválidas"
+            );
         }
+
+        // 5. Login exitoso: limpiar los intentos de esa cuenta
+        intentosLoginService.registrarExito(claveIntentos);
 
         Usuario usuario = usuarioOpt.get();
         List<String> rolesNombres = usuario.getRoles() != null
@@ -150,7 +163,7 @@ public class AuthService {
         JwtService.TokenEmitido emitido = jwtService.emitir(usuario.getCorreo(), rolesNombres);
         return new LoginResponse(emitido.token(), emitido.expiraEn());
     }
-
+    
     public void logout(String jti, Instant expiracion) {
         if (jti != null) {
             tokenRevocadoRepository.registrar(jti, expiracion);

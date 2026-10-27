@@ -33,6 +33,7 @@ import com.autobot.backend.auth.model.TextoLegal;
 import com.autobot.backend.auth.model.TipoConsentimiento;
 import com.autobot.backend.auth.model.Usuario;
 import com.autobot.backend.auth.repository.RolRepository;
+import com.autobot.backend.auth.repository.TokenRevocadoRepository;
 import com.autobot.backend.auth.repository.UsuarioRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,6 +50,14 @@ class RegistroServiceTest {
 
     @Mock
     private UsuarioRepository usuarios;
+    @Mock
+    private TokenRevocadoRepository tokenRevocadoRepository;
+
+    @Mock
+    private JwtService jwtService;
+
+   @Mock
+   private IntentosLoginService intentosLoginService;
 
     @Mock
     private RolRepository roles;
@@ -56,15 +65,22 @@ class RegistroServiceTest {
     @Mock
     private ConsentimientoService consentimientos;
 
-    // Costo bajo para que la prueba sea rápida; el algoritmo es el mismo BCrypt.
     private final PasswordEncoder encoder = new BCryptPasswordEncoder(4);
 
     private AuthService service;
 
     @BeforeEach
-    void crearServicio() {
-        service = new AuthService(usuarios, roles, encoder, consentimientos);
-    }
+void crearServicio() {
+    service = new AuthService(
+        usuarios, 
+        roles, 
+        tokenRevocadoRepository, 
+        encoder, 
+        consentimientos, 
+        jwtService, 
+        intentosLoginService
+    );
+}
 
     private static RegistroRequest solicitud() {
         return solicitud("61234567", new DecisionConsentimiento(true, "1.0"), null);
@@ -79,7 +95,6 @@ class RegistroServiceTest {
         return new Usuario("Otra Persona", correo, "hash");
     }
 
-    /** Stubs comunes de un registro válido: sin duplicados, rol y texto de datos disponibles, guardado exitoso. */
     private void prepararRegistroValido() {
         when(usuarios.findByCorreo(CORREO)).thenReturn(Optional.empty());
         when(usuarios.findByTelefonos_Numero(CELULAR)).thenReturn(Optional.empty());
@@ -123,6 +138,7 @@ class RegistroServiceTest {
 
         service.registrar(solicitud());
 
+        // Corrección: usar getPasswordHash() en lugar de getContrasena()
         String hash = usuarioGuardado().getPasswordHash();
         assertThat(hash).startsWith("$2").isNotEqualTo(CLAVE);
         assertThat(encoder.matches(CLAVE, hash)).isTrue();

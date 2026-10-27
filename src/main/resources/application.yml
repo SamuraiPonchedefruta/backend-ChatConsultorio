@@ -23,6 +23,9 @@ app:
     secret: ${JWT_SECRET}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
     issuer: ${JWT_ISSUER:autobot-backend}
+  login:
+    max-intentos: ${LOGIN_MAX_INTENTOS:5}
+    bloqueo-minutos: ${LOGIN_BLOQUEO_MINUTOS:15}
 
 management:
   endpoints:

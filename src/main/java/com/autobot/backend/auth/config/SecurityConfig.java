@@ -47,8 +47,8 @@ public class SecurityConfig {
                 // Token válido y no revocado: usuario autenticado. Token ausente, vencido, alterado o cerrado
                 // con logout: sin autenticar, y las rutas protegidas responden 401 por el entry point.
                 .addFilterBefore(
-                        new JwtAuthFilter(jwtService, jti -> tokensRevocados.existsById(jti)),
-                        UsernamePasswordAuthenticationFilter.class);
+                              new JwtAuthFilter(jwtService, jti -> tokensRevocados.existsById(jti)),
+                              UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }
