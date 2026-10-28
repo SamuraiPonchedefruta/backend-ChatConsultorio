@@ -11,6 +11,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+  mail:
+    host: localhost
+    port: 3025
+    username: test
+    password: test
 
 app:
   jwt:
@@ -20,3 +25,8 @@ app:
   login:
     max-intentos: 5
     bloqueo-minutos: 15
+
+management:
+  health:
+    mail:
+      enabled: false
