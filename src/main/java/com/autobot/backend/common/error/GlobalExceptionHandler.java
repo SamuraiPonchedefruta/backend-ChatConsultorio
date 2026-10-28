@@ -16,8 +16,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-import com.autobot.backend.auth.service.CuentaBloqueadaException;
+
 import com.autobot.backend.auth.service.ConsentimientoInvalidoException;
+import com.autobot.backend.auth.service.CuentaBloqueadaException;
 import com.autobot.backend.auth.service.CuentaDuplicadaException;
 
 @RestControllerAdvice
@@ -32,6 +33,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return build(HttpStatus.INTERNAL_SERVER_ERROR, new HttpHeaders(), request, List.of());
     }
 
+    /** Manejo explícito para ResponseStatusException (como los 401 de credenciales inválidas). */
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Object> handleResponseStatus(
+            org.springframework.web.server.ResponseStatusException ex, WebRequest request) {
+        ErrorResponse body = ErrorResponse.of(
+                ex.getStatusCode(), 
+                ex.getReason() != null ? ex.getReason() : messageFor(ex.getStatusCode()), 
+                pathOf(request), 
+                List.of()
+        );
+        return new ResponseEntity<>(body, ex.getStatusCode());
+    }
+
     /** Correo o celular ya registrados: 409 con mensaje claro y el detalle por campo. */
     @ExceptionHandler(CuentaDuplicadaException.class)
     public ResponseEntity<Object> handleCuentaDuplicada(CuentaDuplicadaException ex, WebRequest request) {
@@ -42,11 +56,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.CONFLICT);
     }
     
-        /** Demasiados intentos fallidos de login: 429 con el tiempo restante en el mensaje y en Retry-After. */
+    /** Demasiados intentos fallidos de login: 429 con el tiempo restante en el mensaje y en Retry-After. */
+    /** Demasiados intentos fallidos de login: 429 con el tiempo restante en el mensaje y en Retry-After. */
     @ExceptionHandler(CuentaBloqueadaException.class)
     public ResponseEntity<Object> handleCuentaBloqueada(CuentaBloqueadaException ex, WebRequest request) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getSegundosRestantes()));
+        long segundos = Math.max(1, ex.getSegundosRestantes());
+        headers.set(HttpHeaders.RETRY_AFTER, String.valueOf(segundos));
         ErrorResponse body = ErrorResponse.of(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), pathOf(request), List.of());
         return new ResponseEntity<>(body, headers, HttpStatus.TOO_MANY_REQUESTS);
     }
@@ -60,10 +76,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-public ResponseEntity<Object> handleBadCredentials(BadCredentialsException ex, WebRequest request) {
-    ErrorResponse body = ErrorResponse.of(HttpStatus.UNAUTHORIZED, "Credenciales inválidas", pathOf(request), List.of());
-    return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
-}
+    public ResponseEntity<Object> handleBadCredentials(BadCredentialsException ex, WebRequest request) {
+        ErrorResponse body = ErrorResponse.of(HttpStatus.UNAUTHORIZED, "Credenciales inválidas", pathOf(request), List.of());
+        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    }
 
     /** Errores de validación: 400 con el detalle por campo. */
     @Override

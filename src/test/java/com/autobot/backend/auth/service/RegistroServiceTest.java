@@ -12,14 +12,15 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.Optional;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -50,14 +51,12 @@ class RegistroServiceTest {
 
     @Mock
     private UsuarioRepository usuarios;
+    
     @Mock
     private TokenRevocadoRepository tokenRevocadoRepository;
 
     @Mock
     private JwtService jwtService;
-
-   @Mock
-   private IntentosLoginService intentosLoginService;
 
     @Mock
     private RolRepository roles;
@@ -65,22 +64,14 @@ class RegistroServiceTest {
     @Mock
     private ConsentimientoService consentimientos;
 
+    @Mock
+    private IntentosLoginService intentosLoginService;
+
+    @Spy
     private final PasswordEncoder encoder = new BCryptPasswordEncoder(4);
 
+    @InjectMocks
     private AuthService service;
-
-    @BeforeEach
-void crearServicio() {
-    service = new AuthService(
-        usuarios, 
-        roles, 
-        tokenRevocadoRepository, 
-        encoder, 
-        consentimientos, 
-        jwtService, 
-        intentosLoginService
-    );
-}
 
     private static RegistroRequest solicitud() {
         return solicitud("61234567", new DecisionConsentimiento(true, "1.0"), null);
@@ -138,7 +129,6 @@ void crearServicio() {
 
         service.registrar(solicitud());
 
-        // Corrección: usar getPasswordHash() en lugar de getContrasena()
         String hash = usuarioGuardado().getPasswordHash();
         assertThat(hash).startsWith("$2").isNotEqualTo(CLAVE);
         assertThat(encoder.matches(CLAVE, hash)).isTrue();

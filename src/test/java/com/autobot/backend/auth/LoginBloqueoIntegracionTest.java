@@ -120,6 +120,16 @@ class LoginBloqueoIntegracionTest {
     }
 
     @Test
+    @DisplayName("Se puede iniciar sesión con el celular tal como se escribió al registrarse")
+    void loginConCelularSinPrefijo() throws Exception {
+        registrar("rosa.celular@example.com", "61238090");
+
+        login("61238090", CLAVE_CORRECTA)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty());
+    }
+
+    @Test
     @DisplayName("El correo y el celular de la misma cuenta cuentan juntos: no se esquiva el límite alternando")
     void correoYCelularCuentanJuntos() throws Exception {
         String correo = "pablo.alterna@example.com";
