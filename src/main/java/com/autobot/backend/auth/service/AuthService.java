@@ -8,9 +8,11 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.autobot.backend.auth.dto.DecisionConsentimiento;
 import com.autobot.backend.auth.dto.LoginRequest;
@@ -30,7 +32,14 @@ public class AuthService {
 
     static final String ROL_CLIENTE = "CLIENTE";
     private static final String PREFIJO_PANAMA = "+507";
-    private static final String DUMMY_HASH = "$2a$10$123456789012345678901uG7W";
+
+    /**
+     * Hash BCrypt válido (costo 10, el del codificador por defecto) de una contraseña aleatoria descartada.
+     * Se verifica cuando la cuenta no existe, para que esa respuesta tarde lo mismo que la de una cuenta real
+     * con mala contraseña y el tiempo no delate qué cuentas existen. Debe ser un hash válido: si no lo es,
+     * Spring lo rechaza al instante y la defensa no sirve.
+     */
+    private static final String HASH_FICTICIO = "$2a$10$BzSAF86a2n7TBSKU4bjuUe8bCPCvM8pdryf.cAhXW8g6vIFr2raI2";
 
     private final UsuarioRepository usuarios;
     private final RolRepository roles;
@@ -119,40 +128,45 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        String inputIdentificador = request.identificador().trim().toLowerCase(Locale.ROOT);
+        String identificador = request.identificador() == null ? "" : request.identificador().trim();
+        if (identificador.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El identificador no puede estar vacío");
+        }
 
-        // 1. Resolver si el input corresponde a una cuenta real (por correo o por celular)
-        Optional<Usuario> usuarioOpt = usuarios.findByCorreo(inputIdentificador)
-                .or(() -> usuarios.findByTelefonos_Numero(inputIdentificador));
+        // Con @ es un correo; cualquier otro identificador se trata como celular, igual que en el registro.
+        boolean esCorreo = identificador.contains("@");
+        String identificadorNormalizado = esCorreo
+                ? identificador.toLowerCase(Locale.ROOT)
+                : normalizarCelular(identificador);
 
-        // 2. Unificar la clave de intentos: si el usuario existe, usamos su correo oficial. 
-        // Si no existe (fantasma), usamos el input que escribió el usuario.
-        String claveIntentos = usuarioOpt.isPresent() 
-                ? usuarioOpt.get().getCorreo() 
-                : inputIdentificador;
+        Optional<Usuario> usuarioOpt = esCorreo
+                ? usuarios.findByCorreo(identificadorNormalizado)
+                : usuarios.findByTelefonos_Numero(identificadorNormalizado);
 
-        // 3. Verificar si esa clave está bloqueada (lanza 429 si lo está)
+        // Los intentos se cuentan por cuenta (su correo) si existe; si no, por lo que se escribió.
+        String claveIntentos = usuarioOpt.map(Usuario::getCorreo).orElse(identificadorNormalizado);
+
+        // 1. Si ya está bloqueada, responde 429 sin verificar la contraseña.
         intentosLoginService.verificarNoBloqueado(claveIntentos);
 
         boolean passwordValida;
         if (usuarioOpt.isPresent()) {
-            Usuario usuario = usuarioOpt.get();
-            passwordValida = passwordEncoder.matches(request.password(), usuario.getPasswordHash());
+            passwordValida = request.password() != null
+                    && passwordEncoder.matches(request.password(), usuarioOpt.get().getPasswordHash());
         } else {
-            passwordEncoder.matches(request.password(), DUMMY_HASH);
+            if (request.password() != null) {
+                passwordEncoder.matches(request.password(), HASH_FICTICIO);
+            }
             passwordValida = false;
         }
 
-        if (usuarioOpt.isEmpty() || !passwordValida) {
-            // 4. Registrar el fallo usando la clave unificada de la cuenta
+        // 2. Si falla, registra el fallo (lanza 429 si este intento alcanza el límite) y responde 401.
+        if (!passwordValida) {
             intentosLoginService.registrarFallo(claveIntentos);
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.UNAUTHORIZED, 
-                    "Credenciales inválidas"
-            );
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
         }
 
-        // 5. Login exitoso: limpiar los intentos de esa cuenta
+        // 3. Éxito: reinicia el contador.
         intentosLoginService.registrarExito(claveIntentos);
 
         Usuario usuario = usuarioOpt.get();
@@ -163,9 +177,9 @@ public class AuthService {
         JwtService.TokenEmitido emitido = jwtService.emitir(usuario.getCorreo(), rolesNombres);
         return new LoginResponse(emitido.token(), emitido.expiraEn());
     }
-    
+
     public void logout(String jti, Instant expiracion) {
-        if (jti != null) {
+        if (jti != null && expiracion != null) {
             tokenRevocadoRepository.registrar(jti, expiracion);
         }
     }
