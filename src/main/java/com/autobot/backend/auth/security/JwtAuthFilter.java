@@ -20,7 +20,18 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+/**
+ * Lee "Authorization: Bearer <token>" y, si el token es válido y no fue revocado con logout, deja
+ * autenticado al usuario (nombre = correo, autoridades = ROLE_ + cada rol del token).
+ *
+ * Nunca responde por su cuenta: si el token falta, es inválido o está revocado, deja la petición sin
+ * autenticar y Spring Security responde 401 en las rutas protegidas.
+ *
+ * Seguridad: este filtro no registra el encabezado Authorization ni el token, ni siquiera en nivel debug.
+ */
 public class JwtAuthFilter extends OncePerRequestFilter {
+
+    private static final String PREFIJO = "Bearer ";
 
     private final JwtService jwtService;
     private final Predicate<String> tokenRevocadoChecker;
@@ -30,6 +41,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         this.tokenRevocadoChecker = tokenRevocadoChecker;
     }
 
+    /** Sin lista negra: solo para probar el filtro. */
     public JwtAuthFilter(JwtService jwtService) {
         this(jwtService, jti -> false);
     }
@@ -38,20 +50,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        System.out.println(">>> FILTRE ENTER: URI=" + request.getRequestURI() + ", AuthHeader=" + request.getHeader(HttpHeaders.AUTHORIZATION));
-
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (header != null && header.toLowerCase().startsWith("bearer ")) {
-            String token = header.substring(7).trim();
-            System.out.println(">>> FILTRE: Token extraído con éxito, llamando a validar...");
+        if (header != null && header.regionMatches(true, 0, PREFIJO, 0, PREFIJO.length())) {
+            String token = header.substring(PREFIJO.length()).trim();
             Optional<DatosToken> datosOpt = jwtService.validar(token);
 
             if (datosOpt.isPresent() && SecurityContextHolder.getContext().getAuthentication() == null) {
                 DatosToken datos = datosOpt.get();
-                System.out.println(">>> FILTRE: Token válido para correo: " + datos.correo());
 
                 if (datos.jti() != null && tokenRevocadoChecker != null && tokenRevocadoChecker.test(datos.jti())) {
-                    System.out.println(">>> FILTRE: Token revocado (jti=" + datos.jti() + ")");
                     filterChain.doFilter(request, response);
                     return;
                 }
@@ -65,11 +72,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            } else {
-                System.out.println(">>> FILTRE: datosOpt está vacío o ya existe autenticación");
             }
-        } else {
-            System.out.println(">>> FILTRE: No hay encabezado Bearer válido");
         }
 
         filterChain.doFilter(request, response);
