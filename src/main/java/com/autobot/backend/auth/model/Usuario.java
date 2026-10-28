@@ -109,4 +109,7 @@ public class Usuario {
     public List<TelefonoUsuario> getTelefonos() {
         return Collections.unmodifiableList(telefonos);
     }
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 }
