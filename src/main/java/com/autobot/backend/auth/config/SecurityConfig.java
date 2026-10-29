@@ -22,6 +22,17 @@ import com.autobot.backend.auth.service.JwtService;
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
 
+    /**
+     * Herramientas de consulta de acceso anónimo (sin JWT): chatbot, checklist, calculadora y semáforo.
+     * Cualquier ruta nueva que deba ser pública se declara aquí; todo lo demás exige autenticación.
+     */
+    static final String[] RUTAS_PUBLICAS = {
+            "/chat/**",
+            "/checklist/**",
+            "/calculadora/**",
+            "/semaforo/**"
+    };
+
     /** BCrypt con el costo por defecto de Spring Security. */
     @Bean
     PasswordEncoder passwordEncoder() {
@@ -43,6 +54,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                         // Render usa esta ruta como health check: debe seguir siendo pública.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        // Herramientas públicas de consulta: acceso anónimo, sin token JWT.
+                        .requestMatchers(RUTAS_PUBLICAS).permitAll()
                         .anyRequest().authenticated())
                 // Token válido y no revocado: usuario autenticado. Token ausente, vencido, alterado o cerrado
                 // con logout: sin autenticar, y las rutas protegidas responden 401 por el entry point.
