@@ -16,6 +16,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.autobot.backend.auth.repository.TokenRevocadoRepository;
 import com.autobot.backend.auth.security.JwtAuthFilter;
+import com.autobot.backend.auth.security.RestAccessDeniedHandler;
 import com.autobot.backend.auth.service.JwtService;
 
 @Configuration
@@ -41,14 +42,18 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(
-            HttpSecurity http, JwtService jwtService, TokenRevocadoRepository tokensRevocados) throws Exception {
+            HttpSecurity http, 
+            JwtService jwtService, 
+            TokenRevocadoRepository tokensRevocados,
+            RestAccessDeniedHandler restAccessDeniedHandler) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(errores -> errores
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .accessDeniedHandler(restAccessDeniedHandler))
                 .authorizeHttpRequests(rutas -> rutas
                         .requestMatchers(HttpMethod.POST, "/auth/registro").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
@@ -60,8 +65,8 @@ public class SecurityConfig {
                 // Token válido y no revocado: usuario autenticado. Token ausente, vencido, alterado o cerrado
                 // con logout: sin autenticar, y las rutas protegidas responden 401 por el entry point.
                 .addFilterBefore(
-                              new JwtAuthFilter(jwtService, jti -> tokensRevocados.existsById(jti)),
-                              UsernamePasswordAuthenticationFilter.class);
+                            new JwtAuthFilter(jwtService, jti -> tokensRevocados.existsById(jti)),
+                            UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }
