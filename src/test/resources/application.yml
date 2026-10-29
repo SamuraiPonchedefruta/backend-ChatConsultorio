@@ -26,6 +26,10 @@ app:
     max-intentos: 5
     bloqueo-minutos: 15
 
+chatbot:
+  visitante:
+    limite-diario: 10
+
 management:
   health:
     mail:

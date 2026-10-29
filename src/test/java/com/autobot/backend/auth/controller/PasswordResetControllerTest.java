@@ -4,10 +4,13 @@ import com.autobot.backend.auth.model.Usuario;
 import com.autobot.backend.auth.repository.UsuarioRepository;
 import com.autobot.backend.auth.service.EmailService;
 import com.autobot.backend.auth.service.ResetPasswordService;
+import com.autobot.backend.chatbot.VisitanteLimitFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -23,7 +26,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(PasswordResetController.class)
+@WebMvcTest(value = PasswordResetController.class,
+    excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = VisitanteLimitFilter.class))
 @WithMockUser
 public class PasswordResetControllerTest {
 

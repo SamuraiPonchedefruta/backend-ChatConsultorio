@@ -30,3 +30,7 @@ management:
   health:
     mail:
       enabled: false
+# Configuración de límites para visitantes anónimos en el chatbot
+chatbot:
+  visitante:
+    limite-diario: 10
