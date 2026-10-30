@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 
 /**
- * Estructura uniforme de error para toda la API.
+ * Esgit tructura uniforme de error para toda la API.
  */
 public record ErrorResponse(
         Instant timestamp,
