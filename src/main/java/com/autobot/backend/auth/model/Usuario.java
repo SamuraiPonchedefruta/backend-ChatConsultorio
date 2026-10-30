@@ -39,6 +39,9 @@ public class Usuario {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @Column(nullable = false)
+    private boolean activo = true;
+
     @Column(name = "fecha_registro", nullable = false, updatable = false)
     private Instant fechaRegistro;
 
@@ -60,6 +63,7 @@ public class Usuario {
         this.nombre = nombre;
         this.correo = normalizarCorreo(correo);
         this.passwordHash = passwordHash;
+        this.activo = true;
     }
 
     @PrePersist
@@ -98,6 +102,14 @@ public class Usuario {
         return passwordHash;
     }
 
+    public boolean isActivo() {
+        return activo;
+    }
+
+    public void setActivo(boolean activo) {
+        this.activo = activo;
+    }
+
     public Instant getFechaRegistro() {
         return fechaRegistro;
     }
@@ -109,6 +121,7 @@ public class Usuario {
     public List<TelefonoUsuario> getTelefonos() {
         return Collections.unmodifiableList(telefonos);
     }
+
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
     }
