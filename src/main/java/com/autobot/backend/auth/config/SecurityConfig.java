@@ -55,13 +55,12 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                         .accessDeniedHandler(restAccessDeniedHandler))
                 .authorizeHttpRequests(rutas -> rutas
-                        .requestMatchers(HttpMethod.POST, "/auth/registro").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                        // Render usa esta ruta como health check: debe seguir siendo pública.
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        // Herramientas públicas de consulta: acceso anónimo, sin token JWT.
-                        .requestMatchers(RUTAS_PUBLICAS).permitAll()
-                        .anyRequest().authenticated())
+        .requestMatchers(HttpMethod.POST, "/auth/registro").permitAll()
+        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+        .requestMatchers(RUTAS_PUBLICAS).permitAll()
+        .requestMatchers("/admin/**").hasRole("ADMIN")   // <-- nueva
+        .anyRequest().authenticated())
                 // Token válido y no revocado: usuario autenticado. Token ausente, vencido, alterado o cerrado
                 // con logout: sin autenticar, y las rutas protegidas responden 401 por el entry point.
                 .addFilterBefore(
