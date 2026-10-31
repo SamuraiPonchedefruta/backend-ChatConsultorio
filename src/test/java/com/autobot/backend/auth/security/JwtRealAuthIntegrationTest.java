@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -47,10 +48,10 @@ class JwtRealAuthIntegrationTest extends AbstractIntegrationTest {
         usuarioRepository.deleteAll();
         
         Rol rolAdmin = rolRepository.findByNombreRol("ADMIN")
-                .orElseGet(() -> rolRepository.save(new Rol(null, "ADMIN")));
+        .orElseGet(() -> rolRepository.save(new Rol("ADMIN")));
 
-        Rol rolCliente = rolRepository.findByNombreRol("CLIENTE")
-                .orElseGet(() -> rolRepository.save(new Rol(null, "CLIENTE")));
+Rol rolCliente = rolRepository.findByNombreRol("CLIENTE")
+        .orElseGet(() -> rolRepository.save(new Rol("CLIENTE")));
 
         admin = new Usuario("Administrador", "admin@example.com", passwordEncoder.encode("Admin12345"));
         admin.agregarRol(rolAdmin);
@@ -63,32 +64,32 @@ class JwtRealAuthIntegrationTest extends AbstractIntegrationTest {
         usuarioRepository.save(cliente);
     }
 
-    @Test
-    void adminConTokenRealCreaCuentaExitosamente() throws Exception {
-        String token = jwtService.generateToken(admin);
+   @Test
+void adminConTokenRealCreaCuentaExitosamente() throws Exception {
+    String token = jwtService.generarToken("admin@example.com", List.of("ADMIN"));
 
-        mockMvc.perform(post("/admin/usuarios")
-                .header("Authorization", "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {
-                        "correo": "personal.nuevo@example.com",
-                        "contrasena": "ClaveSegura123",
-                        "nombre": "Personal Nuevo",
-                        "rol": "ADMIN"
-                    }
-                """))
-                .andExpect(status().isCreated());
-    }
+    mockMvc.perform(post("/admin/usuarios")
+            .header("Authorization", "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "correo": "personal.nuevo@example.com",
+                    "contrasena": "ClaveSegura123",
+                    "nombre": "Personal Nuevo",
+                    "rol": "ADMIN"
+                }
+            """))
+            .andExpect(status().isCreated());
+}
 
-    @Test
-    void clienteConTokenRealRecibeForbidden() throws Exception {
-        String tokenCliente = jwtService.generateToken(cliente);
+@Test
+void clienteConTokenRealRecibeForbidden() throws Exception {
+    String tokenCliente = jwtService.generarToken("cliente@example.com", List.of("CLIENTE"));
 
-        mockMvc.perform(post("/admin/usuarios")
-                .header("Authorization", "Bearer " + tokenCliente)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
-                .andExpect(status().isForbidden());
-    }
+    mockMvc.perform(post("/admin/usuarios")
+            .header("Authorization", "Bearer " + tokenCliente)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{}"))
+            .andExpect(status().isForbidden());
+}
 }

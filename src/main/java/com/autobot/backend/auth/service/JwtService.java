@@ -9,6 +9,9 @@ import java.util.UUID;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -86,43 +89,30 @@ public class JwtService {
                 JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
     }
 
-    public Optional<DatosToken> validar(String token) {
-        if (token == null || token.isBlank()) {
-            System.out.println("VAL_DEBUG: Token nulo o en blanco");
-            return Optional.empty();
-        }
-        try {
-            System.out.println("VAL_DEBUG: Intentando decodificar token...");
-            Jwt jwt = decoder.decode(token);
-            System.out.println("VAL_DEBUG: Token decodificado correctamente.");
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 
-            String issuerReal = jwt.getClaimAsString("iss");
-            System.out.println("VAL_DEBUG: Issuer esperado=" + properties.issuer() + ", real=" + issuerReal);
-            if (properties.issuer() != null && !properties.issuer().equals(issuerReal)) {
-                System.out.println("VAL_DEBUG: ¡El issuer no coincide!");
-                return Optional.empty();
-            }
-
-            String correo = jwt.getSubject();
-            System.out.println("VAL_DEBUG: Subject (correo)=" + correo);
-
-            List<String> roles = jwt.getClaimAsStringList("roles");
-            System.out.println("VAL_DEBUG: Roles=" + roles);
-
-            Instant expiraEn = jwt.getExpiresAt();
-            System.out.println("VAL_DEBUG: ExpiraEn=" + expiraEn + ", Ahora=" + Instant.now());
-
-            if (correo == null || expiraEn == null || expiraEn.isBefore(Instant.now())) {
-                System.out.println("VAL_DEBUG: ¡Correo nulo, expiraEn nulo o token expirado!");
-                return Optional.empty();
-            }
-
-            System.out.println("VAL_DEBUG: ¡Token validado con éxito!");
-            return Optional.of(new DatosToken(correo, roles != null ? roles : List.of(), expiraEn, jwt.getId()));
-        } catch (Exception e) {
-            System.err.println("VAL_DEBUG CATCH EXCEPTION: " + e.getClass().getName() + " -> " + e.getMessage());
-            e.printStackTrace();
-            return Optional.empty();
-        }
+public Optional<DatosToken> validar(String token) {
+    if (token == null || token.isBlank()) {
+        return Optional.empty();
     }
+    try {
+        Jwt jwt = decoder.decode(token);
+
+        if (properties.issuer() != null && !properties.issuer().equals(jwt.getClaimAsString("iss"))) {
+            return Optional.empty();
+        }
+
+        String correo = jwt.getSubject();
+        Instant expiraEn = jwt.getExpiresAt();
+        if (correo == null || expiraEn == null || expiraEn.isBefore(Instant.now())) {
+            return Optional.empty();
+        }
+
+        List<String> roles = jwt.getClaimAsStringList("roles");
+        return Optional.of(new DatosToken(correo, roles != null ? roles : List.of(), expiraEn, jwt.getId()));
+    } catch (Exception e) {
+        log.debug("Token rechazado: {}", e.getClass().getSimpleName());
+        return Optional.empty();
+    }
+}
 }
