@@ -82,6 +82,11 @@ public class Usuario {
         roles.add(rol);
     }
 
+    public void reemplazarRol(Rol nuevo) {
+    roles.clear();   // el campo privado, no getRoles()
+    roles.add(nuevo);
+}
+
     private static String normalizarCorreo(String correo) {
         return correo == null ? null : correo.trim().toLowerCase(Locale.ROOT);
     }

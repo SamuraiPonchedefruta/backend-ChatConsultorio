@@ -27,10 +27,12 @@ public class AdminUsuarioController {
         this.servicio = servicio;
     }
 
-    @PostMapping
-    public ResponseEntity<UsuarioResponse> crear(@Valid @RequestBody CuentaPersonalRequest req) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(UsuarioResponse.de(servicio.crear(req)));
-    }
+   @PostMapping
+public ResponseEntity<UsuarioResponse> crear(@Valid @RequestBody CuentaPersonalRequest req,
+                                             Authentication auth) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+            .body(UsuarioResponse.de(servicio.crear(req, auth.getName())));
+}
 
     @PatchMapping("/{id}/rol")
     public UsuarioResponse cambiarRol(@PathVariable Long id,
