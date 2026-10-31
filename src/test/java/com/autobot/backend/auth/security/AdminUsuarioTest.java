@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -21,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Transactional
 class AdminUsuarioTest extends AbstractIntegrationTest {
 
     @Autowired
@@ -39,16 +41,14 @@ class AdminUsuarioTest extends AbstractIntegrationTest {
     void setUp() {
         usuarioRepository.deleteAll();
         
-        // Usamos findByNombreRol tal como está definido en el repositorio
-      Rol rolAdmin = rolRepository.findByNombreRol("ADMIN")
-                .orElseGet(() -> rolRepository.save(new Rol("ADMIN")));
+        Rol rolAdmin = rolRepository.findByNombreRol("ADMIN")
+        .orElseGet(() -> rolRepository.save(new Rol("ADMIN")));
 
         Usuario admin = new Usuario("Administrador", "admin@example.com", passwordEncoder.encode("Admin12345"));
         admin.agregarRol(rolAdmin);
         admin.setActivo(true);
         usuarioRepository.save(admin);
     }
-
     @Test
     @WithMockUser(username = "admin@example.com", authorities = "ROLE_ADMIN")
     void adminCreaCuentaDelPersonal() throws Exception {
