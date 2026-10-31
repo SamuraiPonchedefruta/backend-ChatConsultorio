@@ -10,3 +10,4 @@ target/
 # Respaldos locales
 backups/
 *.dump
+salida.txt
