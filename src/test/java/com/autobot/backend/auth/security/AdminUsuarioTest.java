@@ -1,12 +1,17 @@
 package com.autobot.backend.auth.security;
 
 import com.autobot.backend.AbstractIntegrationTest;
+import com.autobot.backend.auth.model.Rol;
+import com.autobot.backend.auth.model.Usuario;
+import com.autobot.backend.auth.repository.RolRepository;
 import com.autobot.backend.auth.repository.UsuarioRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -22,7 +27,27 @@ class AdminUsuarioTest extends AbstractIntegrationTest {
     MockMvc mockMvc;
 
     @Autowired
-    UsuarioRepository usuarios;
+    UsuarioRepository usuarioRepository;
+
+    @Autowired
+    RolRepository rolRepository;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
+
+    @BeforeEach
+    void setUp() {
+        usuarioRepository.deleteAll();
+        
+        // Usamos findByNombreRol tal como está definido en el repositorio
+      Rol rolAdmin = rolRepository.findByNombreRol("ADMIN")
+                .orElseGet(() -> rolRepository.save(new Rol("ADMIN")));
+
+        Usuario admin = new Usuario("Administrador", "admin@example.com", passwordEncoder.encode("Admin12345"));
+        admin.agregarRol(rolAdmin);
+        admin.setActivo(true);
+        usuarioRepository.save(admin);
+    }
 
     @Test
     @WithMockUser(username = "admin@example.com", authorities = "ROLE_ADMIN")
