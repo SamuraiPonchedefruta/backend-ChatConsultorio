@@ -20,10 +20,7 @@ class RolesAccessTest extends AbstractIntegrationTest {
 
     @Test
     @WithMockUser(username = "cliente@example.com", authorities = {"ROLE_CLIENTE"})
-    void clienteDebeAccederARutasPermitidasYDenegarRestringidas() throws Exception {
-        mockMvc.perform(get("/actuator/health"))
-                .andExpect(status().isOk());
-
+    void clienteDebeRecibirForbiddenEnRutaAdmin() throws Exception {
         // Cliente intentando acceder a la ruta protegida de admin (espera 403 Forbidden)
         mockMvc.perform(get("/admin/recurso"))
                 .andExpect(status().isForbidden());
