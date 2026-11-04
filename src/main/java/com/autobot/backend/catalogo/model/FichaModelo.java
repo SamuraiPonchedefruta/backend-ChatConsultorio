@@ -51,17 +51,22 @@ public class FichaModelo {
 
     public FichaModelo(String consumo, String mantenimiento, String fallasComunes,
             String repuestos, String queRevisar) {
-        this.consumo = consumo;
-        this.mantenimiento = mantenimiento;
-        this.fallasComunes = fallasComunes;
-        this.repuestos = repuestos;
-        this.queRevisar = queRevisar;
+        actualizar(consumo, mantenimiento, fallasComunes, repuestos, queRevisar);
     }
 
     @PrePersist
     @PreUpdate
     void marcarActualizacion() {
         actualizadoEn = Instant.now();
+    }
+
+    public void actualizar(String consumo, String mantenimiento, String fallasComunes,
+            String repuestos, String queRevisar) {
+        this.consumo = consumo;
+        this.mantenimiento = mantenimiento;
+        this.fallasComunes = fallasComunes;
+        this.repuestos = repuestos;
+        this.queRevisar = queRevisar;
     }
 
     /** Solo lo usa Modelo.asignarFicha para mantener la relación bidireccional. */
