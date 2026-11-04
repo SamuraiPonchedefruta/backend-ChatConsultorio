@@ -59,6 +59,7 @@ public class SecurityConfig {
         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
         .requestMatchers(RUTAS_PUBLICAS).permitAll()
+        .requestMatchers(HttpMethod.GET, "/modelos/{id}").permitAll()
         .requestMatchers("/admin/**").hasRole("ADMIN")   // <-- nueva
         .anyRequest().authenticated())
                 // Token válido y no revocado: usuario autenticado. Token ausente, vencido, alterado o cerrado
