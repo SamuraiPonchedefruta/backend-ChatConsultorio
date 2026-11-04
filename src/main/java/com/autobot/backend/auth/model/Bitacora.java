@@ -18,7 +18,9 @@ public class Bitacora {
     public enum Accion {
         ALTA,
         DESACTIVACION,
-        CAMBIO_ROL
+        CAMBIO_ROL,
+        MODELO_ALTA,
+        MODELO_EDICION
     }
 
     @Id
@@ -36,8 +38,13 @@ public class Bitacora {
     @Column(name = "correo_admin", nullable = false, length = 255)
     private String correoAdmin;
 
-    @Column(name = "correo_afectado", nullable = false, length = 255)
+    /** Solo las acciones sobre cuentas lo llenan. */
+    @Column(name = "correo_afectado", length = 255)
     private String correoAfectado;
+
+    /** Solo las acciones sobre modelos del catálogo lo llenan. */
+    @Column(name = "id_modelo")
+    private Long idModelo;
 
     @Column(name = "detalle", length = 500)
     private String detalle;
@@ -54,10 +61,17 @@ public class Bitacora {
         this.detalle = detalle;
     }
 
+    public static Bitacora deModelo(Accion accion, String correoAdmin, Long idModelo, String detalle) {
+        Bitacora registro = new Bitacora(accion, correoAdmin, null, detalle);
+        registro.idModelo = idModelo;
+        return registro;
+    }
+
     public Long getId() { return id; }
     public Instant getFecha() { return fecha; }
     public Accion getAccion() { return accion; }
     public String getCorreoAdmin() { return correoAdmin; }
     public String getCorreoAfectado() { return correoAfectado; }
+    public Long getIdModelo() { return idModelo; }
     public String getDetalle() { return detalle; }
 }

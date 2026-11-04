@@ -9,4 +9,6 @@ import com.autobot.backend.auth.model.Bitacora;
 public interface BitacoraRepository extends JpaRepository<Bitacora, Long> {
 
     List<Bitacora> findByCorreoAfectadoOrderByFechaDesc(String correoAfectado);
+
+    List<Bitacora> findByIdModeloOrderByFechaDesc(Long idModelo);
 }

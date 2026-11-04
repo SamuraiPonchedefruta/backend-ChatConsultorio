@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.autobot.backend.auth.service.BitacoraService;
 import com.autobot.backend.catalogo.dto.ModeloRequest;
 import com.autobot.backend.catalogo.dto.ModeloResponse;
 import com.autobot.backend.catalogo.model.FichaModelo;
@@ -15,24 +16,29 @@ import com.autobot.backend.catalogo.repository.ModeloRepository;
 public class ModeloService {
 
     private final ModeloRepository modelos;
+    private final BitacoraService bitacora;
 
-    public ModeloService(ModeloRepository modelos) {
+    public ModeloService(ModeloRepository modelos, BitacoraService bitacora) {
         this.modelos = modelos;
+        this.bitacora = bitacora;
     }
 
     @Transactional
-    public ModeloResponse crear(ModeloRequest req) {
+    public ModeloResponse crear(ModeloRequest req, String correoAdminActual) {
         String marca = req.marca().trim();
         String nombre = req.nombre().trim();
         validarNoDuplicado(marca, nombre, null);
 
         Modelo modelo = new Modelo(marca, nombre);
         modelo.asignarFicha(nuevaFicha(req));
-        return ModeloResponse.de(modelos.save(modelo));
+        Modelo guardado = modelos.save(modelo);
+
+        bitacora.registrarAltaModelo(correoAdminActual, guardado.getId(), descripcion(guardado));
+        return ModeloResponse.de(guardado);
     }
 
     @Transactional
-    public ModeloResponse editar(Long id, ModeloRequest req) {
+    public ModeloResponse editar(Long id, ModeloRequest req, String correoAdminActual) {
         Modelo modelo = modelos.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Modelo no encontrado"));
 
@@ -47,6 +53,8 @@ public class ModeloService {
             modelo.getFicha().actualizar(req.consumo(), req.mantenimiento(),
                     req.fallasComunes(), req.repuestos(), req.queRevisar());
         }
+
+        bitacora.registrarEdicionModelo(correoAdminActual, modelo.getId(), descripcion(modelo));
         return ModeloResponse.de(modelo);
     }
 
@@ -63,5 +71,9 @@ public class ModeloService {
     private FichaModelo nuevaFicha(ModeloRequest req) {
         return new FichaModelo(req.consumo(), req.mantenimiento(),
                 req.fallasComunes(), req.repuestos(), req.queRevisar());
+    }
+
+    private String descripcion(Modelo modelo) {
+        return modelo.getMarca() + " " + modelo.getNombre();
     }
 }

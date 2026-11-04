@@ -1,5 +1,6 @@
 package com.autobot.backend.catalogo.controller;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -25,12 +26,13 @@ public class AdminModeloController {
     }
 
     @PostMapping
-    public ModeloResponse crear(@Valid @RequestBody ModeloRequest req) {
-        return servicio.crear(req);
+    public ModeloResponse crear(@Valid @RequestBody ModeloRequest req, Authentication auth) {
+        return servicio.crear(req, auth.getName());
     }
 
     @PutMapping("/{id}")
-    public ModeloResponse editar(@PathVariable Long id, @Valid @RequestBody ModeloRequest req) {
-        return servicio.editar(id, req);
+    public ModeloResponse editar(@PathVariable Long id, @Valid @RequestBody ModeloRequest req,
+            Authentication auth) {
+        return servicio.editar(id, req, auth.getName());
     }
 }

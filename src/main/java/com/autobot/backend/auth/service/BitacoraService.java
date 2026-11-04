@@ -33,6 +33,16 @@ public class BitacoraService {
                 "De " + rolAnterior + " a " + rolNuevo);
     }
 
+    @Transactional
+    public Bitacora registrarAltaModelo(String correoAdmin, Long idModelo, String descripcion) {
+        return repositorio.save(Bitacora.deModelo(Accion.MODELO_ALTA, correoAdmin, idModelo, descripcion));
+    }
+
+    @Transactional
+    public Bitacora registrarEdicionModelo(String correoAdmin, Long idModelo, String descripcion) {
+        return repositorio.save(Bitacora.deModelo(Accion.MODELO_EDICION, correoAdmin, idModelo, descripcion));
+    }
+
     private Bitacora registrar(Accion accion, String correoAdmin, String correoAfectado, String detalle) {
         return repositorio.save(new Bitacora(accion, correoAdmin, correoAfectado, detalle));
     }
