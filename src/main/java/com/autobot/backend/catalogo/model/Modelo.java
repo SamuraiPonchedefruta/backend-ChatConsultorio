@@ -50,6 +50,11 @@ public class Modelo {
         actualizadoEn = Instant.now();
     }
 
+    public void actualizarDatos(String marca, String nombre) {
+        this.marca = marca.trim();
+        this.nombre = nombre.trim();
+    }
+
     /** Mantiene sincronizados los dos lados de la relación. */
     public void asignarFicha(FichaModelo nuevaFicha) {
         if (nuevaFicha != null) {
