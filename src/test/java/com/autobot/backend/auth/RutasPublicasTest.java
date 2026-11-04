@@ -75,7 +75,7 @@ class RutasPublicasTest {
             "/consentimientos",
             "/autoevaluaciones",
             "/autoevaluaciones/1/resultado",
-            "/modelos/1",
+            "/admin/usuarios/1",
             "/admin/modelos",
             "/ruta-que-no-existe"
     })
