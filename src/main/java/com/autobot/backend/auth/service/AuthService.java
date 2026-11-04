@@ -166,10 +166,16 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
         }
 
-        // 3. Éxito: reinicia el contador.
+        Usuario usuario = usuarioOpt.get();
+
+        // 3. Validación de cuenta activa
+        if (!usuario.isActivo()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "La cuenta está desactivada");
+        }
+
+        // 4. Éxito: reinicia el contador.
         intentosLoginService.registrarExito(claveIntentos);
 
-        Usuario usuario = usuarioOpt.get();
         List<String> rolesNombres = usuario.getRoles() != null
                 ? usuario.getRoles().stream().map(Rol::getNombreRol).toList()
                 : List.of(ROL_CLIENTE);
