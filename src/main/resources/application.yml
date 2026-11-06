@@ -40,3 +40,6 @@ server:
     enabled: true
     mime-types: application/json
     min-response-size: 512
+
+comparador:
+  max-modelos: 4
