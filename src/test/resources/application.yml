@@ -34,3 +34,11 @@ management:
   health:
     mail:
       enabled: false
+
+# Copia de la compresión de src/main/resources/application.yml:
+# este archivo reemplaza al principal cuando corren los tests.
+server:
+  compression:
+    enabled: true
+    mime-types: application/json
+    min-response-size: 512

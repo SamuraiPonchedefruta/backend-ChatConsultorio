@@ -34,3 +34,9 @@ management:
 chatbot:
   visitante:
     limite-diario: 10
+
+server:
+  compression:
+    enabled: true
+    mime-types: application/json
+    min-response-size: 512
