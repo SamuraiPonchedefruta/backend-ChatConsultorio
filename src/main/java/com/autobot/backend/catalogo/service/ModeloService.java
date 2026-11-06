@@ -1,5 +1,6 @@
 package com.autobot.backend.catalogo.service;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +12,7 @@ import com.autobot.backend.catalogo.dto.ModeloResponse;
 import com.autobot.backend.catalogo.model.FichaModelo;
 import com.autobot.backend.catalogo.model.Modelo;
 import com.autobot.backend.catalogo.repository.ModeloRepository;
+import com.autobot.backend.common.config.CacheConfig;
 
 @Service
 public class ModeloService {
@@ -37,6 +39,8 @@ public class ModeloService {
         return ModeloResponse.de(guardado);
     }
 
+    /** Al editar, se invalida la ficha cacheada de ese modelo (cuando la transacción confirma). */
+    @CacheEvict(cacheNames = CacheConfig.FICHAS, key = "#id")
     @Transactional
     public ModeloResponse editar(Long id, ModeloRequest req, String correoAdminActual) {
         Modelo modelo = modelos.findById(id).orElseThrow(() ->
