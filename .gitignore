@@ -11,3 +11,17 @@ target/
 backups/
 *.dump
 salida.txt
+
+# ETL (Python)
+.venv/
+__pycache__/
+.pytest_cache/
+data/invalidos.log
+data/catalogo_limpio.csv
+
+# ETL (Python)
+.venv/
+__pycache__/
+.pytest_cache/
+data/invalidos.log
+data/catalogo_limpio.csv

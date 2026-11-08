@@ -1,0 +1,5 @@
+marca,nombre,consumo,mantenimiento,fallas_comunes,repuestos,que_revisar
+Toyota,Yaris,EJEMPLO: completar consumo verificado,EJEMPLO: completar costo de mantenimiento,EJEMPLO: completar fallas comunes,EJEMPLO: completar repuestos,EJEMPLO: completar qué revisar
+Hyundai,Accent,EJEMPLO: completar consumo verificado,EJEMPLO: completar costo de mantenimiento,EJEMPLO: completar fallas comunes,EJEMPLO: completar repuestos,EJEMPLO: completar qué revisar
+Kia,Rio,EJEMPLO: completar consumo verificado,EJEMPLO: completar costo de mantenimiento,EJEMPLO: completar fallas comunes,EJEMPLO: completar repuestos,EJEMPLO: completar qué revisar
+,Modelo sin marca,EJEMPLO: fila inválida a propósito,,,,
