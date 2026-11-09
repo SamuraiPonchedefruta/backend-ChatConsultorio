@@ -1,0 +1,7 @@
+# Dependencias del ETL que se instalan en CI.
+# El modelo de embeddings (sentence-transformers) NO va aquí: es pesado y las pruebas usan un embedder falso.
+pandas>=2.2
+SQLAlchemy>=2.0
+psycopg[binary]>=3.2
+pgvector>=0.3
+pytest>=8.0
