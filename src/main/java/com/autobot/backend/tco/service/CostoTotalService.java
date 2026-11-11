@@ -30,26 +30,39 @@ public class CostoTotalService {
         this.rangos = rangos;
     }
 
-    /**
-     * @param kmPorGalon         consumo del vehículo; la ficha solo lo trae como texto, por eso entra aquí
-     * @param mantenimientoAnual costo de mantenimiento por año, por la misma razón
-     */
+    /** Calcula solo con los supuestos por defecto de supuesto_tco. */
     @Transactional(readOnly = true)
     public CostoTotalResultado calcular(Long idModelo, int anioModelo, int anios,
             BigDecimal kmPorGalon, BigDecimal mantenimientoAnual) {
+        return calcular(idModelo, anioModelo, anios, kmPorGalon, mantenimientoAnual, null, null, null);
+    }
+
+    /**
+     * @param kmPorGalon         consumo del vehículo; la ficha solo lo trae como texto, por eso entra aquí
+     * @param mantenimientoAnual costo de mantenimiento por año, por la misma razón
+     * @param kmPorAnio          supuesto del usuario; si es null se usa KM_POR_ANIO
+     * @param precioCombustible  supuesto del usuario; si es null se usa PRECIO_COMBUSTIBLE
+     * @param seguroAnual        supuesto del usuario; si es null se usa SEGURO_ANUAL
+     */
+    @Transactional(readOnly = true)
+    public CostoTotalResultado calcular(Long idModelo, int anioModelo, int anios,
+            BigDecimal kmPorGalon, BigDecimal mantenimientoAnual,
+            BigDecimal kmPorAnio, BigDecimal precioCombustible, BigDecimal seguroAnual) {
         validar(anios, kmPorGalon, mantenimientoAnual);
 
         BigDecimal horizonte = BigDecimal.valueOf(anios);
         BigDecimal compra = precioDeCompra(idModelo, anioModelo);
 
+        BigDecimal km = kmPorAnio != null ? kmPorAnio : valor("KM_POR_ANIO");
+        BigDecimal precio = precioCombustible != null ? precioCombustible : valor("PRECIO_COMBUSTIBLE");
+        BigDecimal seguroPorAnio = seguroAnual != null ? seguroAnual : valor("SEGURO_ANUAL");
+
         // Se multiplica todo antes de dividir, para redondear una sola vez al final.
-        BigDecimal combustible = valor("KM_POR_ANIO")
-                .multiply(valor("PRECIO_COMBUSTIBLE"))
-                .multiply(horizonte)
+        BigDecimal combustible = km.multiply(precio).multiply(horizonte)
                 .divide(kmPorGalon, ESCALA, RoundingMode.HALF_UP);
 
         BigDecimal mantenimiento = mantenimientoAnual.multiply(horizonte).setScale(ESCALA, RoundingMode.HALF_UP);
-        BigDecimal seguro = valor("SEGURO_ANUAL").multiply(horizonte).setScale(ESCALA, RoundingMode.HALF_UP);
+        BigDecimal seguro = seguroPorAnio.multiply(horizonte).setScale(ESCALA, RoundingMode.HALF_UP);
         BigDecimal gastos = valor("GASTOS_ANUALES").multiply(horizonte).setScale(ESCALA, RoundingMode.HALF_UP);
 
         return CostoTotalResultado.de(anios, compra, combustible, mantenimiento, seguro, gastos);

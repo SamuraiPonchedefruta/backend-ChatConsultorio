@@ -1,7 +1,9 @@
 package com.autobot.backend.tco.controller;
 
 import java.time.LocalDate;
-import java.util.Comparator;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,8 +29,9 @@ public class CalculadoraController {
             + "compra, combustible, mantenimiento, seguro y gastos anuales, para el horizonte indicado.";
 
     static final String LIMITACIONES = "Es una estimación orientativa, no una cotización. "
-            + "La compra usa el punto medio del rango de precio de referencia; seguro, gastos, "
-            + "kilómetros por año y precio del combustible son supuestos por defecto, y el "
+            + "La compra usa el punto medio del rango de precio de referencia. Kilómetros por año, "
+            + "precio del combustible y seguro usan supuestos por defecto, salvo que quien consulta "
+            + "indique los suyos; los gastos anuales siempre son un supuesto por defecto, y el "
             + "consumo y el mantenimiento los indica quien consulta. No incluye depreciación, "
             + "financiamiento ni imprevistos.";
 
@@ -47,19 +50,38 @@ public class CalculadoraController {
     public CalculoResponse calcular(@Valid @RequestBody CalculoRequest req) {
         // Primero el cálculo: si no hay rango de precio responde 404 antes de buscar fechas.
         CostoTotalResultado desglose = servicio.calcular(req.idModelo(), req.anioModelo(),
-                req.anios(), req.kmPorGalon(), req.mantenimientoAnual());
-        return new CalculoResponse(desglose, ALCANCE, LIMITACIONES,
-                fechaDeLosDatos(req.idModelo(), req.anioModelo()));
+                req.anios(), req.kmPorGalon(), req.mantenimientoAnual(),
+                req.kmPorAnio(), req.precioCombustible(), req.seguroAnual());
+        return new CalculoResponse(desglose, ALCANCE, LIMITACIONES, fechaDeLosDatos(req));
     }
 
-    /** La fecha más antigua entre los supuestos y el rango usado, para no aparentar datos más frescos. */
-    private LocalDate fechaDeLosDatos(Long idModelo, int anioModelo) {
-        LocalDate fechaSupuestos = supuestos.findAll().stream()
-                .map(SupuestoTco::getFechaFuente)
-                .min(Comparator.naturalOrder())
-                .orElseThrow();
-        LocalDate fechaRango = rangos.findByModeloIdAndAnioOrderByFechaFuenteDesc(idModelo, anioModelo)
+    /**
+     * La fecha más antigua entre el rango usado y los supuestos que salieron de la tabla.
+     * Un valor escrito por el usuario no tiene fecha de la tabla, así que no cuenta.
+     */
+    private LocalDate fechaDeLosDatos(CalculoRequest req) {
+        LocalDate fechaRango = rangos
+                .findByModeloIdAndAnioOrderByFechaFuenteDesc(req.idModelo(), req.anioModelo())
                 .get(0).getFechaFuente();
-        return fechaSupuestos.isBefore(fechaRango) ? fechaSupuestos : fechaRango;
+        return clavesDeLaTabla(req).stream()
+                .map(supuestos::findByClave)
+                .flatMap(Optional::stream)
+                .map(SupuestoTco::getFechaFuente)
+                .reduce(fechaRango, (a, b) -> a.isBefore(b) ? a : b);
+    }
+
+    private List<String> clavesDeLaTabla(CalculoRequest req) {
+        List<String> claves = new ArrayList<>();
+        claves.add("GASTOS_ANUALES");
+        if (req.kmPorAnio() == null) {
+            claves.add("KM_POR_ANIO");
+        }
+        if (req.precioCombustible() == null) {
+            claves.add("PRECIO_COMBUSTIBLE");
+        }
+        if (req.seguroAnual() == null) {
+            claves.add("SEGURO_ANUAL");
+        }
+        return claves;
     }
 }
