@@ -43,6 +43,12 @@ public class BitacoraService {
         return repositorio.save(Bitacora.deModelo(Accion.MODELO_EDICION, correoAdmin, idModelo, descripcion));
     }
 
+    @Transactional
+    public Bitacora registrarEdicionPregunta(String correoAdmin, Long idPregunta, String descripcion) {
+        return repositorio.save(new Bitacora(Accion.PREGUNTA_EDICION, correoAdmin, null,
+                descripcion + " (pregunta " + idPregunta + ")"));
+    }
+
     private Bitacora registrar(Accion accion, String correoAdmin, String correoAfectado, String detalle) {
         return repositorio.save(new Bitacora(accion, correoAdmin, correoAfectado, detalle));
     }
