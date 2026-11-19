@@ -20,7 +20,8 @@ public class Bitacora {
         DESACTIVACION,
         CAMBIO_ROL,
         MODELO_ALTA,
-        MODELO_EDICION
+        MODELO_EDICION,
+        PREGUNTA_EDICION
     }
 
     @Id
